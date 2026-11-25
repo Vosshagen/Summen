@@ -1,0 +1,399 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#153a30">
+  <title>Nordhof · Ober- und Untersummen</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #172e28;
+      --muted: #4a6057;
+      --paper: #f3f6f1;
+      --border: #d7e1d7;
+      --forest: #153a30;
+      --green: #08684e;
+      --orange: #a33a16;
+      --gap: #52577d;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font: 1rem/1.5 "Segoe UI", "Liberation Sans", system-ui, sans-serif;
+    }
+    .wrap { width: min(1190px, calc(100% - 48px)); margin-inline: auto; }
+    header { background: var(--forest); color: #fff; padding: 29px 0 33px; border-bottom: 5px solid #a6c59e; }
+    .intro { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 14px 28px; }
+    .eyebrow { margin: 0 0 4px; color: #d6ecc9; font-size: .88rem; font-weight: 650; letter-spacing: .045em; }
+    h1 { margin: 0; font-size: clamp(2rem, 4vw, 3.15rem); line-height: 1.12; letter-spacing: -.038em; }
+    .function { margin: 0; font-variant-numeric: tabular-nums; align-self: flex-end; font-size: 1.05rem; }
+    .domain { color: #d6ecc9; margin-left: .6rem; white-space: nowrap; }
+    main { padding: 24px 0 32px; }
+    .layout { display: grid; grid-template-columns: minmax(0, 1fr) 325px; gap: 18px; align-items: start; }
+    .card { background: white; border: 1px solid var(--border); border-radius: 17px; }
+    .graph-card { padding: 19px 16px 14px; margin: 0; min-width: 0; }
+    .graph-head { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 14px; padding: 0 8px; }
+    h2 { font-size: 1.17rem; margin: 0; letter-spacing: -.012em; }
+    #modeLabel { color: var(--muted); font-size: .91rem; }
+    canvas { display: block; width: 100%; height: clamp(360px, 54vh, 550px); margin-top: 3px; }
+    figcaption { display: flex; flex-wrap: wrap; align-items: center; gap: 7px 17px; padding: 12px 8px 0; border-top: 1px solid var(--border); color: var(--muted); font-size: .89rem; }
+    figcaption span { display: inline-flex; align-items: center; gap: 6px; }
+    .key { width: 21px; height: 15px; border-radius: 3px; flex: none; }
+    .key.upper { border: 1px solid var(--orange); background: repeating-linear-gradient(45deg, #fff4ed 0 4px, #b85430 4px 5px, #fff4ed 5px 8px); }
+    .key.lower { border: 1px solid var(--green); background: repeating-linear-gradient(-45deg, #eef8f1 0 4px, #198060 4px 5px, #eef8f1 5px 8px); }
+    .key.gap { border: 1px solid var(--gap); background: repeating-linear-gradient(0deg, #eeeefa 0 4px, #666a94 4px 5px, #eeeefa 5px 8px); }
+    .key.curve { height: 3px; background: #19382d; }
+    [hidden] { display: none !important; }
+    .sidebar { display: grid; gap: 14px; }
+    .panel { padding: 17px; }
+    .settings { margin: 0; padding: 0; border: 0; min-inline-size: 0; }
+    .settings legend { font-weight: 700; font-size: 1.17rem; margin-bottom: 7px; padding: 0; }
+    .check { display: flex; align-items: center; gap: 9px; min-height: 35px; cursor: pointer; }
+    .check:has(input:disabled) { color: var(--muted); cursor: default; }
+    input[type=checkbox] { inline-size: 1.12rem; block-size: 1.12rem; margin: 0; accent-color: var(--green); }
+    #upperToggle { accent-color: var(--orange); }
+    #gapToggle { accent-color: var(--gap); }
+    .divider { border-top: 1px solid var(--border); margin: 12px 0; }
+    .range-title { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-weight: 700; }
+    #count { min-width: 2.4em; border-radius: 6px; padding: 1px 7px; text-align: center; background: #e8f2e7; color: #204e3a; font-variant-numeric: tabular-nums; }
+    input[type=range] { width: 100%; height: 26px; margin: 5px 0 0; accent-color: var(--green); cursor: pointer; }
+    .endpoints, .strip-width { color: var(--muted); font-size: .86rem; }
+    .endpoints { display: flex; justify-content: space-between; margin-top: -4px; }
+    .strip-width { margin: 5px 0 8px; }
+    button {
+      width: 100%; border: 1px solid transparent; border-radius: 9px; padding: 8px 10px;
+      background: var(--forest); color: white; font: inherit; font-weight: 650; cursor: pointer;
+    }
+    button:hover:enabled { background: #235847; }
+    button:disabled { background: #e6ede8; color: #4c6158; cursor: default; }
+    :focus-visible { outline: 3px solid #246ca1; outline-offset: 3px; }
+    .metrics h2 { margin-bottom: 7px; }
+    .metrics dl { margin: 0; }
+    .metric { display: flex; gap: 10px; align-items: baseline; justify-content: space-between; padding: 4px 0; }
+    .metric dt { font-weight: 650; }
+    .metric dd { margin: 0; white-space: nowrap; font-size: 1.12rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .metric dd small { font-size: .8rem; font-weight: 500; }
+    .metric.upper { color: var(--orange); }
+    .metric.lower { color: var(--green); }
+    .metric.gap { color: var(--gap); border-top: 1px solid var(--border); padding-top: 7px; margin-top: 3px; }
+    .number-line { margin-top: 5px; padding-inline: 5px; }
+    .number-scale { position: relative; height: 30px; border-bottom: 1px solid #81948a; margin-bottom: 2px; }
+    .connector { position: absolute; bottom: -1px; border-bottom: 3px solid #9196b0; }
+    .marker { position: absolute; width: 0; bottom: 0; border-left: 1px solid currentColor; }
+    .marker::before { content: ''; position: absolute; top: -3px; left: -4px; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+    #lowerMarker { height: 10px; color: var(--green); }
+    #upperMarker { height: 21px; color: var(--orange); }
+    .tick { position: absolute; height: 4px; bottom: 0; border-left: 1px solid #81948a; }
+    .tick-labels { display: flex; justify-content: space-between; color: var(--muted); font-size: .75rem; }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+    @media (max-width: 920px) {
+      .layout { grid-template-columns: minmax(0, 1fr); }
+      .sidebar { grid-template-columns: 1fr 1fr; }
+      canvas { height: clamp(340px, 52vh, 550px); }
+    }
+    @media (max-width: 550px) {
+      .wrap { width: calc(100% - 26px); }
+      header { padding: 23px 0; }
+      main { padding-top: 13px; }
+      .sidebar { grid-template-columns: 1fr; }
+      .graph-card { padding: 14px 6px 11px; }
+      canvas { height: 350px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap intro">
+      <div>
+        <p class="eyebrow">Rollrasen für den Nordhof</p>
+        <h1>Ober- und Untersummen</h1>
+      </div>
+      <p class="function"><strong>f(x) = −0,5x² + 2,5x + 1</strong><span class="domain">0 ≤ x ≤ 4</span></p>
+    </div>
+  </header>
+  <main class="wrap">
+    <div class="layout">
+      <figure class="card graph-card" aria-labelledby="graphTitle">
+        <div class="graph-head">
+          <h2 id="graphTitle">Lageplan</h2>
+          <span id="modeLabel"></span>
+        </div>
+        <canvas id="graph" role="img" aria-label="Graph der Randfunktion und Rechtecke der Flächenabschätzung">
+          Der Lageplan zeigt die Nordhof-Fläche und die Rechtecke der Flächenabschätzung.
+        </canvas>
+        <figcaption>
+          <span><i class="key curve" aria-hidden="true"></i> Gebogener Rand</span>
+          <span id="upperKey"><i class="key upper" aria-hidden="true"></i> Obersumme</span>
+          <span id="lowerKey"><i class="key lower" aria-hidden="true"></i> Untersumme</span>
+          <span id="gapKey" hidden><i class="key gap" aria-hidden="true"></i> Differenzfläche</span>
+        </figcaption>
+      </figure>
+
+      <div class="sidebar">
+        <section class="card panel" aria-label="Darstellung und Streifen">
+          <fieldset class="settings">
+            <legend>Darstellung</legend>
+            <label class="check"><input id="upperToggle" type="checkbox" checked><i class="key upper" aria-hidden="true"></i> Obersumme</label>
+            <label class="check"><input id="lowerToggle" type="checkbox" checked><i class="key lower" aria-hidden="true"></i> Untersumme</label>
+            <label class="check"><input id="gapToggle" type="checkbox"><i class="key gap" aria-hidden="true"></i> Nur die Differenzfläche</label>
+          </fieldset>
+          <div class="divider"></div>
+          <label class="range-title" for="slider">Anzahl der Streifen <output id="count" for="slider">8</output></label>
+          <input id="slider" type="range" min="1" max="128" value="8" step="1" aria-describedby="stripWidth">
+          <div class="endpoints" aria-hidden="true"><span>1</span><span>128</span></div>
+          <p class="strip-width" id="stripWidth"></p>
+          <button type="button" id="halve">Streifen halbieren</button>
+        </section>
+
+        <section class="card panel metrics" aria-labelledby="metricsTitle">
+          <h2 id="metricsTitle">Flächenwerte</h2>
+          <dl>
+            <div class="metric upper"><dt>Obersumme</dt><dd><span id="upperValue"></span> <small>m²</small></dd></div>
+            <div class="metric lower"><dt>Untersumme</dt><dd><span id="lowerValue"></span> <small>m²</small></dd></div>
+            <div class="metric gap"><dt>Abstand</dt><dd><span id="gapValue"></span> <small>m²</small></dd></div>
+          </dl>
+          <div class="number-line" aria-hidden="true">
+            <div class="number-scale">
+              <span class="tick" style="left:0%"></span><span class="tick" style="left:33.333%"></span>
+              <span class="tick" style="left:66.667%"></span><span class="tick" style="left:100%"></span>
+              <span class="connector" id="connector"></span>
+              <span class="marker" id="lowerMarker"></span><span class="marker" id="upperMarker"></span>
+            </div>
+            <div class="tick-labels"><span>0</span><span>6</span><span>12</span><span>18 m²</span></div>
+          </div>
+          <p id="liveValues" class="sr-only" aria-live="polite"></p>
+        </section>
+      </div>
+    </div>
+    <noscript>Bitte aktiviere JavaScript, um den Lageplan und die Streifen interaktiv zu erkunden.</noscript>
+  </main>
+
+  <script>
+    'use strict';
+    const $ = id => document.getElementById(id);
+    const slider = $('slider');
+    const graph = $('graph');
+    const ctx = graph.getContext('2d');
+    const upperToggle = $('upperToggle');
+    const lowerToggle = $('lowerToggle');
+    const gapToggle = $('gapToggle');
+    const maxStrips = Number(slider.max);
+    const f = x => -0.5 * x * x + 2.5 * x + 1;
+    const vertex = 2.5;
+    const number = new Intl.NumberFormat('de-DE', { maximumFractionDigits: 5 });
+    const ink = '#19382d';
+    const style = {
+      upper: { fill: '#f6c2a658', hatch: '#a33a16a8', edge: '#a33a16', slope: 1 },
+      lower: { fill: '#8acdb855', hatch: '#08684eaa', edge: '#08684e', slope: -1 },
+      gap: { fill: '#c4c6eea0', hatch: '#52577db5', edge: '#52577d', slope: 0 }
+    };
+    let geometry;
+
+    function calculate(n) {
+      const width = 4 / n;
+      const strips = Array.from({ length: n }, (_, i) => {
+        const a = i * width;
+        const b = (i + 1) * width;
+        const fa = f(a);
+        const fb = f(b);
+        return {
+          a, b,
+          min: Math.min(fa, fb),
+          max: a <= vertex && vertex <= b ? f(vertex) : Math.max(fa, fb)
+        };
+      });
+      const lower = width * strips.reduce((sum, strip) => sum + strip.min, 0);
+      const upper = width * strips.reduce((sum, strip) => sum + strip.max, 0);
+      return { strips, width, lower, upper, gap: upper - lower };
+    }
+
+    function hatch(paint) {
+      const tile = document.createElement('canvas');
+      tile.width = tile.height = 9;
+      const pen = tile.getContext('2d');
+      pen.strokeStyle = paint.hatch;
+      pen.lineWidth = 1.2;
+      pen.beginPath();
+      if (paint.slope === 0) {
+        pen.moveTo(0, 4.5);
+        pen.lineTo(9, 4.5);
+      } else {
+        for (const shift of [-9, 0, 9]) {
+          pen.moveTo(shift, paint.slope === 1 ? 0 : 9);
+          pen.lineTo(shift + 9, paint.slope === 1 ? 9 : 0);
+        }
+      }
+      pen.stroke();
+      return ctx.createPattern(tile, 'repeat');
+    }
+
+    const patterns = Object.fromEntries(Object.entries(style).map(([name, paint]) => [name, hatch(paint)]));
+
+    function segment(x1, y1, x2, y2) {
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
+    }
+
+    function draw() {
+      if (!geometry) return;
+      const bounds = graph.getBoundingClientRect();
+      if (!bounds.width || !bounds.height) return;
+      const dpr = Math.min(window.devicePixelRatio || 1, 3);
+      graph.width = Math.round(bounds.width * dpr);
+      graph.height = Math.round(bounds.height * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      const w = bounds.width;
+      const h = bounds.height;
+      const right = w - 24;
+      const top = 29;
+      const bottom = h - 43;
+      const left = w < 440 ? 37 : 53;
+      const x = value => left + value / 4 * (right - left);
+      const y = value => bottom - value / 4.6 * (bottom - top);
+      const pxWidth = geometry.width * (right - left) / 4;
+      const active = gapToggle.checked ? ['gap'] :
+        [upperToggle.checked ? 'upper' : null, lowerToggle.checked ? 'lower' : null].filter(Boolean);
+
+      function rectangle(strip, name) {
+        const low = name === 'gap' ? strip.min : 0;
+        const high = name === 'lower' ? strip.min : strip.max;
+        return [x(strip.a), y(high), x(strip.b) - x(strip.a), y(low) - y(high)];
+      }
+
+      ctx.lineWidth = 1;
+      ctx.strokeStyle = '#e5ece5';
+      ctx.beginPath();
+      for (let i = 0; i <= 8; i++) {
+        const v = i / 2;
+        segment(x(v), top, x(v), bottom);
+        segment(left, y(v), right, y(v));
+      }
+      ctx.stroke();
+      ctx.strokeStyle = '#ccd9ce';
+      ctx.beginPath();
+      for (let i = 0; i <= 4; i++) {
+        segment(x(i), top, x(i), bottom);
+        segment(left, y(i), right, y(i));
+      }
+      ctx.stroke();
+
+      for (const name of active) {
+        ctx.fillStyle = style[name].fill;
+        for (const strip of geometry.strips) ctx.fillRect(...rectangle(strip, name));
+      }
+      for (const name of active) {
+        ctx.fillStyle = patterns[name];
+        const stroke = style[name].edge;
+        const lineWidth = pxWidth < 7 ? .85 : 1.5;
+        for (const strip of geometry.strips) ctx.fillRect(...rectangle(strip, name));
+        ctx.strokeStyle = stroke;
+        ctx.lineWidth = lineWidth;
+        ctx.beginPath();
+        for (const strip of geometry.strips) {
+          const [sx, sy, sw, sh] = rectangle(strip, name);
+          segment(sx, sy, sx + sw, sy);
+          if (name === 'gap') segment(sx, sy + sh, sx + sw, sy + sh);
+        }
+        ctx.stroke();
+        if (pxWidth >= 5) {
+          ctx.globalAlpha = .33;
+          ctx.lineWidth = .8;
+          ctx.beginPath();
+          for (const strip of geometry.strips) {
+            const [sx, sy, sw, sh] = rectangle(strip, name);
+            segment(sx, sy, sx, sy + sh);
+            segment(sx + sw, sy, sx + sw, sy + sh);
+          }
+          ctx.stroke();
+          ctx.globalAlpha = 1;
+        }
+      }
+
+      ctx.strokeStyle = '#40584d';
+      ctx.lineWidth = 1.25;
+      ctx.beginPath();
+      segment(left, bottom, right + 5, bottom);
+      segment(left, bottom, left, top - 4);
+      ctx.stroke();
+
+      ctx.strokeStyle = '#fafffa';
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(x(0), y(f(0)));
+      for (let i = 1; i <= 240; i++) {
+        const v = 4 * i / 240;
+        ctx.lineTo(x(v), y(f(v)));
+      }
+      ctx.stroke();
+      ctx.strokeStyle = ink;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      ctx.font = '14px "Segoe UI", "Liberation Sans", sans-serif';
+      ctx.fillStyle = '#40584d';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      for (let i = 0; i <= 4; i++) ctx.fillText(String(i), x(i), bottom + 16);
+      ctx.textAlign = 'right';
+      for (let i = 1; i <= 4; i++) ctx.fillText(String(i), left - 11, y(i));
+      ctx.fillText('x (m)', right, bottom + 34);
+      ctx.textAlign = 'left';
+      ctx.fillText('y (m)', Math.max(2, left - 15), 13);
+    }
+
+    function update(announce = false) {
+      const n = Number(slider.value);
+      geometry = calculate(n);
+      const { width, lower, upper, gap } = geometry;
+      const onlyGap = gapToggle.checked;
+      const showUpper = !onlyGap && upperToggle.checked;
+      const showLower = !onlyGap && lowerToggle.checked;
+      upperToggle.disabled = onlyGap;
+      lowerToggle.disabled = onlyGap;
+      $('upperKey').hidden = !showUpper;
+      $('lowerKey').hidden = !showLower;
+      $('gapKey').hidden = !onlyGap;
+      $('modeLabel').textContent = onlyGap ? 'Differenzfläche' :
+        showUpper && showLower ? 'Beide Summen' :
+        showUpper ? 'Obersumme' : showLower ? 'Untersumme' : 'Nur Funktionsgraph';
+      $('count').value = n;
+      $('stripWidth').textContent = 'Streifenbreite: ' + number.format(width) + ' m';
+      $('halve').disabled = n * 2 > maxStrips;
+      $('halve').title = $('halve').disabled ? 'Eine weitere Halbierung ergibt mehr als 128 Streifen.' : '';
+      $('lowerValue').textContent = number.format(lower);
+      $('upperValue').textContent = number.format(upper);
+      $('gapValue').textContent = number.format(gap);
+      const lowerPercent = 100 * lower / 18;
+      const upperPercent = 100 * upper / 18;
+      $('lowerMarker').style.left = lowerPercent + '%';
+      $('upperMarker').style.left = upperPercent + '%';
+      $('connector').style.left = lowerPercent + '%';
+      $('connector').style.width = (upperPercent - lowerPercent) + '%';
+      graph.setAttribute('aria-label', 'Lageplan mit ' + n + ' Streifen · ' + $('modeLabel').textContent);
+      if (announce) {
+        $('liveValues').textContent = n + ' Streifen. Obersumme: ' + number.format(upper) +
+          ' Quadratmeter. Untersumme: ' + number.format(lower) + ' Quadratmeter. Abstand: ' +
+          number.format(gap) + ' Quadratmeter.';
+      }
+      draw();
+    }
+
+    slider.addEventListener('input', () => update());
+    slider.addEventListener('change', () => update(true));
+    for (const toggle of [upperToggle, lowerToggle, gapToggle]) toggle.addEventListener('change', () => update(true));
+    $('halve').addEventListener('click', () => {
+      const next = Number(slider.value) * 2;
+      if (next <= maxStrips) {
+        slider.value = next;
+        update(true);
+      }
+    });
+    new ResizeObserver(draw).observe(graph);
+    update();
+  </script>
+</body>
+</html>
